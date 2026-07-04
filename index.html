@@ -1,0 +1,748 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rotoris 360 Viewer - Assets 7</title>
+  <style>
+    @font-face {
+      font-family: "Rotoris Sans";
+      src: url("./www.rotoris.com/www.rotoris.com/fonts/RotorisSans-Regular.woff2") format("woff2");
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "Rotoris Sans";
+      src: url("./www.rotoris.com/www.rotoris.com/fonts/RotorisSans-SemiBold.woff2") format("woff2");
+      font-weight: 600;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    :root {
+      color-scheme: light;
+      --text: #1a1a1a;
+      --muted: #99a1ad;
+      --line: #d9dde4;
+      --bg: #ffffff;
+      --track: #e7e7e7;
+      --accent: #111111;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      min-height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Rotoris Sans", Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      overflow: hidden;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .viewer-shell {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: #fff;
+    }
+
+    .viewer-shell.is-closed .viewer-stage,
+    .viewer-shell.is-closed .viewer-footer {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .viewer-stage {
+      position: relative;
+      width: min(70vw, 920px);
+      height: min(75vh, 760px);
+      min-height: 430px;
+      background: #fff;
+      transition: opacity 180ms ease;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: pan-y;
+    }
+
+    canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+      outline: none;
+    }
+
+    canvas.is-dragging {
+      cursor: grabbing;
+    }
+
+    .close-button,
+    .play-button {
+      position: fixed;
+      z-index: 20;
+      display: grid;
+      width: 48px;
+      height: 48px;
+      padding: 0;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--text);
+      cursor: pointer;
+      transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+    }
+
+    .close-button {
+      top: 28px;
+      right: 28px;
+    }
+
+    .play-button {
+      top: 28px;
+      left: 28px;
+    }
+
+    .close-button:hover,
+    .play-button:hover {
+      border-color: #bfc5ce;
+      background: #fff;
+      transform: translateY(-1px);
+    }
+
+    .viewer-footer {
+      position: fixed;
+      left: 50%;
+      bottom: 28px;
+      display: grid;
+      gap: 10px;
+      justify-items: center;
+      transform: translateX(-50%);
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0;
+      transition: opacity 180ms ease;
+    }
+
+    .frame-meter {
+      width: min(220px, 44vw);
+      height: 2px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #edf0f3;
+    }
+
+    .frame-meter span {
+      display: block;
+      width: calc(var(--progress, 0) * 100%);
+      height: 100%;
+      border-radius: inherit;
+      background: #151515;
+    }
+
+    .loader {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: grid;
+      place-items: center;
+      background: #fff;
+      transition: opacity 220ms ease, visibility 220ms ease;
+    }
+
+    .loader.is-hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .loader-panel {
+      display: grid;
+      width: min(400px, 72vw);
+      gap: 24px;
+      justify-items: center;
+    }
+
+    .brand {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+    }
+
+    .loader-track {
+      width: 100%;
+      height: 4px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: var(--track);
+    }
+
+    .loader-bar {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--accent);
+      transition: width 120ms ease;
+    }
+
+    .loader-copy {
+      margin: 0;
+      font-size: clamp(16px, 2.4vw, 24px);
+      color: var(--text);
+    }
+
+    .closed-panel {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      display: none;
+      place-items: center;
+      background: #fff;
+      padding: 28px;
+      text-align: center;
+    }
+
+    .viewer-shell.is-closed .closed-panel {
+      display: grid;
+    }
+
+    .reopen-button {
+      min-width: 160px;
+      height: 44px;
+      padding: 0 20px;
+      border: 0;
+      border-radius: 999px;
+      background: #111;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    @media (max-width: 760px) {
+      .viewer-stage {
+        width: 100vw;
+        height: 72vh;
+        min-height: 360px;
+      }
+
+      .close-button,
+      .play-button {
+        top: 16px;
+        width: 44px;
+        height: 44px;
+      }
+
+      .close-button {
+        right: 16px;
+      }
+
+      .play-button {
+        left: 16px;
+      }
+
+      .viewer-footer {
+        bottom: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="viewer-shell" id="viewerShell">
+    <button class="play-button" id="playButton" type="button" aria-label="Toggle auto rotate" title="Auto rotate">
+      <svg id="playIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M8 5v14l11-7L8 5Z" fill="currentColor"></path>
+      </svg>
+    </button>
+
+    <button class="close-button" id="closeButton" type="button" aria-label="Close 3D view" title="Close">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+      </svg>
+    </button>
+
+    <section class="viewer-stage" id="viewerStage" aria-label="Manifesta Black Onyx 360 view">
+      <canvas id="viewerCanvas" tabindex="0" role="img" aria-label="Manifesta Black Onyx image sequence"></canvas>
+    </section>
+
+    <div class="viewer-footer" aria-hidden="true">
+      <span>Drag to rotate</span>
+      <div class="frame-meter"><span id="frameMeter"></span></div>
+    </div>
+
+    <section class="closed-panel" aria-label="3D view closed">
+      <button class="reopen-button" id="reopenButton" type="button">Open 3D view</button>
+    </section>
+  </main>
+
+  <div class="loader" id="loader" aria-live="polite">
+    <div class="loader-panel">
+      <div class="brand">ROTORIS</div>
+      <div class="loader-track" aria-hidden="true"><div class="loader-bar" id="loaderBar"></div></div>
+      <p class="loader-copy">The 3D view is loading</p>
+    </div>
+  </div>
+
+  <script>
+    const FRAME_COUNT = 161;
+    const FRAME_START = 160;
+    const FRAME_DIR = "./assets/7";
+    const FRAME_PREFIX = "ManifestaBlackOnyx-img-sq-";
+    const FRAME_EXTENSION = "jpg";
+    const MAX_CONCURRENT_LOADS = 6;
+
+    // Input low-pass filter time constant: higher = smoother but laggier drag.
+    const SMOOTHING_TAU_MS = 50;
+
+    const shell = document.getElementById("viewerShell");
+    const stage = document.getElementById("viewerStage");
+    const canvas = document.getElementById("viewerCanvas");
+    const ctx = canvas.getContext("2d", { alpha: false });
+    const loader = document.getElementById("loader");
+    const loaderBar = document.getElementById("loaderBar");
+    const frameMeter = document.getElementById("frameMeter");
+    const closeButton = document.getElementById("closeButton");
+    const reopenButton = document.getElementById("reopenButton");
+    const playButton = document.getElementById("playButton");
+    const playIcon = document.getElementById("playIcon");
+
+    const frames = [];
+    const loadedIndexes = new Set();
+    const loadingPromises = new Map();
+    let loadQueue = [];
+    let activeLoads = 0;
+
+    // Progress values are unwrapped floats (1.0 = one full turn); wrapping
+    // happens only when mapping to a frame index, so smoothing never sees a seam.
+    const state = {
+      loaded: 0,
+      target: 0,
+      progress: 0,
+      lastDrawn: -1,
+      dragging: false,
+      lastX: 0,
+      lastTime: 0,
+      velocity: 0,
+      autoRotate: false,
+      loopRunning: false,
+      lastTick: 0,
+      resizeFrame: 0,
+      dpr: 1,
+      width: 0,
+      height: 0
+    };
+
+    function frameUrl(index) {
+      const id = String(FRAME_START - index).padStart(3, "0");
+      return `${FRAME_DIR}/${FRAME_PREFIX}${id}.${FRAME_EXTENSION}`;
+    }
+
+    function updateLoader() {
+      const percent = Math.round((state.loaded / FRAME_COUNT) * 100);
+      loaderBar.style.width = `${percent}%`;
+    }
+
+    function updateMeter(frame) {
+      const progress = FRAME_COUNT <= 1 ? 0 : frame / (FRAME_COUNT - 1);
+      frameMeter.style.setProperty("--progress", progress.toFixed(4));
+    }
+
+    function resizeCanvas() {
+      const rect = stage.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      state.dpr = dpr;
+      state.width = Math.max(1, rect.width);
+      state.height = Math.max(1, rect.height);
+      canvas.width = Math.round(state.width * dpr);
+      canvas.height = Math.round(state.height * dpr);
+      canvas.style.width = `${state.width}px`;
+      canvas.style.height = `${state.height}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      render(true);
+    }
+
+    function scheduleResize() {
+      cancelAnimationFrame(state.resizeFrame);
+      state.resizeFrame = requestAnimationFrame(resizeCanvas);
+    }
+
+    function frameAt(progress) {
+      const wrapped = ((progress % 1) + 1) % 1;
+      return Math.round(wrapped * FRAME_COUNT) % FRAME_COUNT;
+    }
+
+    function drawFitted(image) {
+      const imageWidth = image.naturalWidth || image.width;
+      const imageHeight = image.naturalHeight || image.height;
+      const imageRatio = imageWidth / imageHeight;
+      const canvasRatio = state.width / state.height;
+      let drawWidth;
+      let drawHeight;
+
+      if (imageRatio > canvasRatio) {
+        drawWidth = state.width;
+        drawHeight = drawWidth / imageRatio;
+      } else {
+        drawHeight = state.height;
+        drawWidth = drawHeight * imageRatio;
+      }
+
+      const x = (state.width - drawWidth) / 2;
+      const y = (state.height - drawHeight) / 2;
+      ctx.drawImage(image, x, y, drawWidth, drawHeight);
+    }
+
+    function render(force = false) {
+      const requested = frameAt(state.progress);
+      let frame = requested;
+
+      ensureFrameNeighborhood(requested);
+
+      if (!frames[frame]) {
+        frame = nearestLoadedFrame(frame);
+        if (frame === -1) return;
+      }
+
+      if (!force && frame === state.lastDrawn) return;
+
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, state.width, state.height);
+      drawFitted(frames[frame]);
+
+      state.lastDrawn = frame;
+      updateMeter(requested);
+    }
+
+    // Single render loop: input handlers only update state.target / velocity,
+    // and this loop eases the displayed progress toward it once per display frame.
+    function startLoop() {
+      if (state.loopRunning) return;
+      state.loopRunning = true;
+      state.lastTick = performance.now();
+      requestAnimationFrame(loopTick);
+    }
+
+    function loopTick(now) {
+      const dt = Math.min(64, Math.max(0.1, now - state.lastTick));
+      state.lastTick = now;
+      const steps = dt / 16.67;
+
+      if (state.autoRotate && !state.dragging) {
+        state.target += (dt / 1000) * 0.055;
+      } else if (!state.dragging && state.velocity !== 0) {
+        state.target += state.velocity * steps;
+        state.velocity *= Math.pow(0.92, steps);
+        if (Math.abs(state.velocity) < 0.00002) state.velocity = 0;
+      }
+
+      const ease = 1 - Math.exp(-dt / SMOOTHING_TAU_MS);
+      state.progress += (state.target - state.progress) * ease;
+
+      const settled = !state.dragging && !state.autoRotate && state.velocity === 0
+        && Math.abs(state.target - state.progress) < 0.0005;
+
+      if (settled) {
+        state.progress = state.target;
+        render();
+        state.loopRunning = false;
+        return;
+      }
+
+      render();
+      requestAnimationFrame(loopTick);
+    }
+
+    function nearestLoadedFrame(target) {
+      if (loadedIndexes.size === 0) return -1;
+      if (frames[target]) return target;
+
+      for (let offset = 1; offset < FRAME_COUNT; offset += 1) {
+        const forward = (target + offset) % FRAME_COUNT;
+        const backward = (target - offset + FRAME_COUNT) % FRAME_COUNT;
+        if (frames[forward]) return forward;
+        if (frames[backward]) return backward;
+      }
+
+      return -1;
+    }
+
+    function frameDistance(a, b) {
+      const direct = Math.abs(a - b);
+      return Math.min(direct, FRAME_COUNT - direct);
+    }
+
+    function loadFrame(index) {
+      if (frames[index]) return Promise.resolve(frames[index]);
+      if (loadingPromises.has(index)) return loadingPromises.get(index);
+
+      const promise = new Promise((resolve) => {
+        const image = new Image();
+        image.decoding = "async";
+        const finish = () => {
+          frames[index] = image;
+          loadedIndexes.add(index);
+          state.loaded += 1;
+          updateLoader();
+          if (frameDistance(index, frameAt(state.progress)) <= 2 || state.lastDrawn === -1) render(true);
+          resolve(image);
+        };
+        image.onload = () => {
+          // Pre-decode off the drag path so the first drawImage of this
+          // frame never does a synchronous decode mid-interaction.
+          if (image.decode) image.decode().then(finish, finish);
+          else finish();
+        };
+        image.onerror = () => {
+          state.loaded += 1;
+          updateLoader();
+          resolve(null);
+        };
+        image.src = frameUrl(index);
+      }).finally(() => {
+        loadingPromises.delete(index);
+      });
+
+      loadingPromises.set(index, promise);
+      return promise;
+    }
+
+    function enqueueFrames(indexes, highPriority = false) {
+      const seen = new Set();
+      const unique = indexes.filter((index) => {
+        const normalized = (index + FRAME_COUNT) % FRAME_COUNT;
+        if (seen.has(normalized)) return false;
+        seen.add(normalized);
+        return !frames[normalized] && !loadingPromises.has(normalized) && !loadQueue.includes(normalized);
+      }).map((index) => (index + FRAME_COUNT) % FRAME_COUNT);
+
+      loadQueue = highPriority ? unique.concat(loadQueue) : loadQueue.concat(unique);
+      pumpQueue();
+    }
+
+    function pumpQueue() {
+      while (activeLoads < MAX_CONCURRENT_LOADS && loadQueue.length > 0) {
+        const index = loadQueue.shift();
+        activeLoads += 1;
+        loadFrame(index).finally(() => {
+          activeLoads -= 1;
+          pumpQueue();
+        });
+      }
+    }
+
+    function ensureFrameNeighborhood(center) {
+      const neighborhood = [];
+      for (let offset = 0; offset <= 3; offset += 1) {
+        neighborhood.push(center + offset, center - offset);
+      }
+      enqueueFrames(neighborhood, true);
+    }
+
+    function buildLoadOrder() {
+      const order = [];
+      const add = (index) => {
+        const normalized = (index + FRAME_COUNT) % FRAME_COUNT;
+        if (!order.includes(normalized)) order.push(normalized);
+      };
+
+      for (let index = 0; index <= 16; index += 1) add(index);
+      for (let index = 0; index < FRAME_COUNT; index += 5) add(index);
+      for (let index = 0; index < FRAME_COUNT; index += 1) add(index);
+      return order;
+    }
+
+    function buildInteractiveLoadOrder() {
+      const order = [];
+      const add = (index) => {
+        const normalized = (index + FRAME_COUNT) % FRAME_COUNT;
+        if (!order.includes(normalized)) order.push(normalized);
+      };
+
+      for (let index = 0; index <= 24; index += 1) add(index);
+      for (let index = 0; index < FRAME_COUNT; index += 5) add(index);
+      return order;
+    }
+
+    function loadFramesNow(indexes) {
+      const pending = indexes.filter((index, position) => {
+        const normalized = (index + FRAME_COUNT) % FRAME_COUNT;
+        return indexes.indexOf(normalized) === position && !frames[normalized];
+      }).map((index) => (index + FRAME_COUNT) % FRAME_COUNT);
+
+      return new Promise((resolve) => {
+        let cursor = 0;
+        let active = 0;
+
+        function pump() {
+          if (cursor >= pending.length && active === 0) {
+            resolve();
+            return;
+          }
+
+          while (active < MAX_CONCURRENT_LOADS && cursor < pending.length) {
+            active += 1;
+            loadFrame(pending[cursor]).finally(() => {
+              active -= 1;
+              pump();
+            });
+            cursor += 1;
+          }
+        }
+
+        pump();
+      });
+    }
+
+    function preloadFrames() {
+      loadFrame(0).then(() => {
+        render(true);
+        return loadFramesNow(buildInteractiveLoadOrder());
+      }).then(() => {
+        render(true);
+        loader.classList.add("is-hidden");
+        introNudge();
+        enqueueFrames(buildLoadOrder());
+      });
+    }
+
+    function introNudge() {
+      const start = performance.now();
+      const duration = 1200;
+
+      function tick(now) {
+        if (state.dragging || state.autoRotate) return;
+        const t = Math.min(1, (now - start) / duration);
+        const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        state.target = t < 0.5 ? eased * 0.045 : (1 - eased) * 0.045;
+        startLoop();
+        if (t < 1) requestAnimationFrame(tick);
+      }
+
+      requestAnimationFrame(tick);
+    }
+
+    function startDrag(clientX) {
+      state.dragging = true;
+      state.autoRotate = false;
+      state.lastX = clientX;
+      state.lastTime = performance.now();
+      state.velocity = 0;
+      canvas.classList.add("is-dragging");
+      updatePlayIcon();
+      startLoop();
+    }
+
+    function dragTo(clientX, timeStamp) {
+      if (!state.dragging) return;
+      const now = timeStamp || performance.now();
+      const dx = clientX - state.lastX;
+      const dt = Math.max(1, now - state.lastTime);
+      const delta = -(1.05 * dx) / Math.max(1, stage.offsetWidth);
+      state.target += delta;
+      state.velocity = (delta / (dt / 16.67)) * 0.55 + state.velocity * 0.45;
+      state.lastX = clientX;
+      state.lastTime = now;
+    }
+
+    function stopDrag() {
+      if (!state.dragging) return;
+      state.dragging = false;
+      canvas.classList.remove("is-dragging");
+      if (Math.abs(state.velocity) < 0.003) state.velocity = 0;
+      startLoop();
+    }
+
+    function toggleAutoRotate() {
+      state.autoRotate = !state.autoRotate;
+      state.velocity = 0;
+      updatePlayIcon();
+      if (state.autoRotate) startLoop();
+    }
+
+    function updatePlayIcon() {
+      playIcon.innerHTML = state.autoRotate
+        ? '<path d="M7 5h3v14H7V5Zm7 0h3v14h-3V5Z" fill="currentColor"></path>'
+        : '<path d="M8 5v14l11-7L8 5Z" fill="currentColor"></path>';
+    }
+
+    canvas.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      canvas.setPointerCapture(event.pointerId);
+      startDrag(event.clientX);
+    });
+
+    canvas.addEventListener("pointermove", (event) => {
+      if (!state.dragging) return;
+      event.preventDefault();
+      // Coalesced events recover the full-rate pointer trail, which keeps
+      // the velocity estimate stable on high-polling-rate mice and touch.
+      const coalesced = event.getCoalescedEvents ? event.getCoalescedEvents() : [];
+      if (coalesced.length > 0) {
+        for (const sample of coalesced) dragTo(sample.clientX, sample.timeStamp);
+      } else {
+        dragTo(event.clientX, event.timeStamp);
+      }
+    });
+
+    canvas.addEventListener("pointerup", stopDrag);
+    canvas.addEventListener("pointercancel", stopDrag);
+    canvas.addEventListener("lostpointercapture", stopDrag);
+
+    canvas.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        state.target += 1 / FRAME_COUNT;
+        startLoop();
+      }
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        state.target -= 1 / FRAME_COUNT;
+        startLoop();
+      }
+      if (event.key === " ") {
+        event.preventDefault();
+        toggleAutoRotate();
+      }
+      if (event.key === "Escape") {
+        closeViewer();
+      }
+    });
+
+    function closeViewer() {
+      shell.classList.add("is-closed");
+      if (state.autoRotate) toggleAutoRotate();
+      state.velocity = 0;
+    }
+
+    closeButton.addEventListener("click", closeViewer);
+
+    reopenButton.addEventListener("click", () => {
+      shell.classList.remove("is-closed");
+      resizeCanvas();
+      canvas.focus();
+    });
+
+    playButton.addEventListener("click", toggleAutoRotate);
+    window.addEventListener("resize", scheduleResize);
+
+    resizeCanvas();
+    preloadFrames();
+  </script>
+</body>
+</html>
